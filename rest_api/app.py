@@ -1,5 +1,6 @@
 from flask import Flask, request
 from flask_restplus import Api, Resource, fields
+from functools import wraps
 
 app = Flask(__name__)
 
@@ -18,10 +19,26 @@ languages = []
 python = {'language': 'Python', 'id': 1}
 languages.append(python)
 
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+        if 'X-API-KEY' in request.headers:
+            token = request.headers['X-API-KEY']
+        
+        if not token:
+            return {'message': 'Token is missing.'}, 401
+
+        print('TOKEN: {}'.format(token))
+        return f(*args, **kwargs)
+    
+    return decorated
+
 @api.route('/language')
 class Language(Resource):
-    @api.marshal_with(a_language, envelope='the_data')
+    #@api.marshal_with(a_language, envelope='the_data')
     @api.doc(security='apikey')
+    @token_required
     def get(self):
         return languages
     
